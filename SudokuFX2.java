@@ -26,7 +26,7 @@ public class SudokuFX2 extends Application{
 	Integer[][] sudoMatrixInt = new Integer[9][9];
 	TextField[][] displayMatrix = new TextField[9][9];
 	TextField statusText = new TextField();
-
+	int iter = 0;
 
 	public static void main(String[] args){
 
@@ -40,10 +40,10 @@ public class SudokuFX2 extends Application{
 
 		primaryStage.setTitle("Sudoku Solver");
 
-		String inputData = "437618952518294637629573184193462875756381429284957316372846591941735268865129743";
-		String mask = "100011001010100110101111110010111111010000010111111010011111101011001010100110001";
-		//String inputData = "395164827781592436246378195653781249879426513124953768932815674517649382468237951";
-		//String mask =      "101100111011010101100111111100100110111101111011001001111111001101010110111001101";
+		//String inputData = "437618952518294637629573184193462875756381429284957316372846591941735268865129743";
+		//String mask = "100011001010100110101111110010111111010000010111111010011111101011001010100110001";
+		String inputData = "395164827781592436246378195653781249879426513124953768932815674517649382468237951";
+		String mask =      "101100111011010101100111111100100110111101111011001001111111001101010110111001101";
 		
 		String maskedData = "";
 		
@@ -134,13 +134,18 @@ public class SudokuFX2 extends Application{
 		
 		statusText.setText("Enter Inital Values");
 		
-		//setup solve button
-		Button btn = new Button("Solve");
+		//setup start button
+		Button btn = new Button("Start");
 		btn.setMaxWidth(Double.MAX_VALUE);
 		btn.setFont(Font.font("Serif", FontWeight.BOLD, 22));
 
+		//setup iterate button
+		Button btn2 = new Button("Iterate");
+		btn2.setMaxWidth(Double.MAX_VALUE);
+		btn2.setFont(Font.font("Serif", FontWeight.BOLD, 22));
+		
 		//setup status text
-		statusText.setFont(Font.font("Serif", FontWeight.BOLD, 18));
+		statusText.setFont(Font.font("Serif", FontWeight.BOLD, 14));
 		
 		//setup pane
 		GridPane entryRoot = new GridPane();
@@ -148,7 +153,7 @@ public class SudokuFX2 extends Application{
 		entryRoot.setAlignment(Pos.CENTER);
 		entryRoot.setVgap(10);
 		entryRoot.setHgap(10);
-		entryRoot.add(btn, 1, 10,2,1);
+		entryRoot.add(btn, 1, 10,2,1);	
 		entryRoot.add(statusText, 3, 10,3,1);
 
 		//place boxes into gridpane 
@@ -159,13 +164,11 @@ public class SudokuFX2 extends Application{
 			}
 		}
 
-
 		System.out.println("init'ed text fields");
 
 		//create scene and assign to stage
 		primaryStage.setScene(new Scene(entryRoot,800,600));
 		primaryStage.show();
-
 
 		//Button Action Event - What to do when "solve" button is pressed
 		btn.setOnAction(new EventHandler<ActionEvent>(){
@@ -177,9 +180,8 @@ public class SudokuFX2 extends Application{
 						sudoMatrix[r][c]=Integer.parseInt(displayMatrix[r][c].getText());
 					}
 				}
-				System.out.println("info pulled from text fields");
-				solver();
 
+				System.out.println("info pulled from text fields and added to matrix");
 				GridPane root = new GridPane();
 
 				root.setAlignment(Pos.CENTER);
@@ -193,27 +195,66 @@ public class SudokuFX2 extends Application{
 					}
 				}
 				root.add(statusText, 3, 10,4,1);
+				root.add(btn2, 1, 10,2,1);
 
 				primaryStage.setScene(new Scene(root,800,600));
 				primaryStage.show();
+				System.out.println("New scene set.");
 			}
-
 		});
+		
+		
+		//Button Action Event - What to do when "iterate" button is pressed
+		btn2.setOnAction(new EventHandler<ActionEvent>(){
+
+			@Override	public void handle(ActionEvent e){
+				System.out.println("Iterate button pressed");
+				
+				//Run Solver thru One Iteration
+				solver();
+				iter++;
+				
+				//update display
+				updateDisplay();
+				
+				//output matrix to console
+				printMatrix(sudoMatrix);
+				
+				
+				//check if puzzle is solved
+				if(checkMatrix(sudoMatrix,iter)) {
+					System.out.println("Iterations: "+iter);
+					System.out.println("Puzzle solved!");
+					
+					GridPane root = new GridPane();
+	
+					root.setAlignment(Pos.CENTER);
+					root.setVgap(10);
+					root.setHgap(10);
+					for (int i=0;i<9;i++){
+						int k = 8-i;
+						for (int j=0;j<9;j++){
+	
+							root.add(displayMatrix[i][j], j, k);
+						}
+					}
+					root.add(statusText, 3, 10,4,1);
+	
+					primaryStage.setScene(new Scene(root,800,600));
+					primaryStage.show();
+					System.out.println("Final scene set.");
+				}
+			}
+		});		
+				
 	}//end start
 		
 
 	//Solving Method
 	public void solver(){
-		int iter = 0;
 
-		while (checkZeros(sudoMatrix)==1){
 
-			iter++;
-			if(iter>20){
-				updateDisplay();
-				statusText.setText("Algorithm cannot solve puzzle.");
-				return;
-			}
+		if (checkZeros(sudoMatrix)==1){
 
 			//update display
 			updateDisplay();
@@ -223,8 +264,6 @@ public class SudokuFX2 extends Application{
 					for (int c=0;c<9;c++){
 						if(sudoMatrix[r][c]==0){
 							ArrayList<Integer>z=null;
-
-							
 
 							z=willFit(r,c,sudoMatrix);
 
@@ -384,16 +423,6 @@ public class SudokuFX2 extends Application{
 			}//end for	
 		}//end for
 
-		//update display
-		updateDisplay();
-
-		printMatrix(sudoMatrix);
-
-		checkMatrix(sudoMatrix);
-
-
-		System.out.println("Iterations: "+iter);
-		System.out.println("the end");
 
 	}//end start method
 
@@ -706,9 +735,16 @@ public class SudokuFX2 extends Application{
 
 
 	//Sudo Checker
-	public void checkMatrix(int[][] matrix){
+	public boolean checkMatrix(int[][] matrix,int iter1){
 		int sum = 0;
 		boolean matrixGood = true;
+		
+		if (iter1>20) {
+			System.out.println("More than 20 iterations.  Algorithm cannot solve!!");
+			statusText.setText("More than 20 iterations.  Algorithm cannot solve!!!");
+			return false;
+		}
+		
 		for(int i=0;i<9;i++){
 			sum = 0;
 			for(int j=0;j<9;j++){
@@ -726,11 +762,13 @@ public class SudokuFX2 extends Application{
 		}
 
 		if (matrixGood == true){
-			System.out.println("Solution Checked.  Puzzle Solved!!");
-			statusText.setText("Solution Checked. Puzzle Solved!");
+			System.out.println("Solution Checked.  Puzzle Solved in "+ iter1 + " iterations!");
+			statusText.setText("Solution Checked. Puzzle Solved in "+ iter1 + " iterations!");
+			return true;
 		}
 		else{System.out.println("Solution Checked.  Puzzle NOT Solved!!");
 			statusText.setText("Solution Checked. Puzzle NOT Solved!");
+			return false;
 		}
 	}//end method
 
